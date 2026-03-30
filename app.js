@@ -6,7 +6,8 @@ const SIM_DAYS_PER_SECOND = 1;
 const state = {
   plans: [],
   nowMs: Date.now(),
-  chart: null
+  chart: null,
+  tickerTimer: null
 };
 
 const chartColors = ["#2f6df6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
@@ -72,6 +73,37 @@ const elapsedDaysForPlan = (plan) => {
 
 const computeForView = (plan) => computePlan(plan, elapsedDaysForPlan(plan));
 
+const parseMoneyText = (text) => {
+  const normalized = String(text).replace(/[^\d.-]/g, "");
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const animateMoney = (el, target) => {
+  if (!(el instanceof HTMLElement)) {
+    return;
+  }
+  const to = Number.isFinite(target) ? target : 0;
+  const from = parseMoneyText(el.textContent || "0");
+  const delta = to - from;
+  if (Math.abs(delta) < 0.005) {
+    el.textContent = formatMoney(to);
+    return;
+  }
+
+  const duration = 700;
+  const start = performance.now();
+  const tick = (now) => {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - (1 - p) ** 3;
+    el.textContent = formatMoney(from + delta * eased);
+    if (p < 1) {
+      requestAnimationFrame(tick);
+    }
+  };
+  requestAnimationFrame(tick);
+};
+
 const renderPlans = () => {
   planContainer.innerHTML = "";
 
@@ -120,9 +152,9 @@ const renderPlans = () => {
       </div>
 
       <div class="stats">
-        <div class="stat-row"><span>收益</span><strong>${formatMoney(result.grossProfit)}</strong></div>
-        <div class="stat-row"><span>最终资产</span><strong>${formatMoney(result.finalAmount)}</strong></div>
-        <div class="stat-row"><span>实时资产(每秒跳动)</span><strong>${formatMoney(result.tickingAmount)}</strong></div>
+        <div class="stat-row"><span>收益</span><strong class="money-value" data-kind="profit" data-plan-id="${plan.id}">${formatMoney(result.grossProfit)}</strong></div>
+        <div class="stat-row"><span>最终资产</span><strong class="money-value" data-kind="final" data-plan-id="${plan.id}">${formatMoney(result.finalAmount)}</strong></div>
+        <div class="stat-row"><span>实时资产(每秒跳动)</span><strong class="money-value pulse" data-kind="tick" data-plan-id="${plan.id}">${formatMoney(result.tickingAmount)}</strong></div>
         <div class="muted">${plan.lockEnabled ? "锁仓中（仅标记，不影响收益公式）" : "未锁仓"} ｜ 等效 APY：${result.apyPercent.toFixed(2)}%</div>
       </div>
     `;
@@ -166,6 +198,14 @@ const renderPlans = () => {
     });
 
     planContainer.appendChild(card);
+  });
+};
+
+const updateTickingOnly = () => {
+  state.plans.forEach((plan) => {
+    const result = computeForView(plan);
+    const tickEl = document.querySelector(`.money-value[data-kind="tick"][data-plan-id="${plan.id}"]`);
+    animateMoney(tickEl, result.tickingAmount);
   });
 };
 
@@ -237,9 +277,9 @@ const init = () => {
   addPlanBtn.addEventListener("click", addPlan);
   renderAll();
 
-  setInterval(() => {
+  state.tickerTimer = setInterval(() => {
     state.nowMs = Date.now();
-    renderAll();
+    updateTickingOnly();
   }, 1000);
 };
 
