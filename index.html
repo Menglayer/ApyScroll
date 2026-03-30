@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>收益与复利曲线计算器</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <h1>收益与复利曲线计算器</h1>
+        <p>输入本金、APR/APY、锁仓参数，实时查看收益与资金跳动。</p>
+      </header>
+
+      <section class="toolbar">
+        <button id="addPlanBtn" type="button">+ 新增配置</button>
+      </section>
+
+      <section>
+        <div id="plans" class="plans"></div>
+      </section>
+
+      <section class="chart-panel">
+        <h2>复利曲线对比</h2>
+        <canvas id="compoundChart" height="120"></canvas>
+      </section>
+    </main>
+  </body>
+  </html>
